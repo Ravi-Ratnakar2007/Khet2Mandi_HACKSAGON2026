@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<title>Khet2Mandi Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+
+font-family:Arial;
+background:#f4f6f8;
+padding:40px;
+
+}
+
+.container{
+
+max-width:900px;
+margin:auto;
+background:white;
+padding:30px;
+border-radius:10px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+
+}
+
+h1{text-align:center}
+
+select,button{
+
+padding:10px;
+margin:10px;
+font-size:16px;
+
+}
+
+button{
+
+background:#2c7be5;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+
+}
+
+button:hover{
+
+background:#1a5dc8;
+
+}
+
+#result{
+
+margin-top:20px;
+font-size:18px;
+font-weight:bold;
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+<h1>Khet2Mandi Price Forecast</h1>
+
+
+<label>Commodity</label>
+
+<select id="commodity" onchange="loadMarkets()">
+
+<option value="banana">banana</option>
+<option value="wheat">wheat</option>
+<option value="bajra">bajra</option>
+<option value="cotton">cotton</option>
+<option value="potato">potato</option>
+<option value="maize">maize</option>
+
+</select>
+
+
+<label>Market</label>
+
+<select id="market"></select>
+
+
+<br>
+
+<button onclick="getPrediction()">Predict</button>
+
+
+<div id="result"></div>
+
+<canvas id="forecastChart"></canvas>
+
+
+</div>
+
+
+<script>
+
+let chart
+
+
+
+async function loadMarkets(){
+
+const commodity=document.getElementById("commodity").value
+
+const marketSelect=document.getElementById("market")
+
+marketSelect.innerHTML="<option>Loading markets...</option>"
+
+try{
+
+const res=await fetch(`http://127.0.0.1:8000/markets?commodity=${commodity}`)
+
+const data=await res.json()
+
+marketSelect.innerHTML=""
+
+if(data.markets.length===0){
+
+marketSelect.innerHTML="<option>No markets found</option>"
+
+return
+
+}
+
+data.markets.forEach(m=>{
+
+const option=document.createElement("option")
+
+option.value=m
+
+option.textContent=m
+
+marketSelect.appendChild(option)
+
+})
+
+}catch(err){
+
+console.error(err)
+
+marketSelect.innerHTML="<option>Error loading markets</option>"
+
+}
+
+}
+
+
+
+async function getPrediction(){
+
+const commodity=document.getElementById("commodity").value
+
+const market=document.getElementById("market").value
+
+
+document.getElementById("result").innerHTML="Loading prediction..."
+
+
+const res=await fetch(
+
+`http://127.0.0.1:8000/predict?commodity=${commodity}&market=${encodeURIComponent(market)}`
+
+)
+
+const data=await res.json()
+
+
+drawChart(data.forecast)
+
+
+document.getElementById("result").innerHTML=
+
+`Best Week To Sell: Week ${data.best_week_to_sell} | Expected Price: ₹${data.expected_price}`
+
+}
+
+
+
+function drawChart(forecast){
+
+const ctx=document.getElementById("forecastChart")
+
+if(chart) chart.destroy()
+
+chart=new Chart(ctx,{
+
+type:"line",
+
+data:{
+
+labels:["Week1","Week2","Week3","Week4","Week5","Week6","Week7","Week8"],
+
+datasets:[{
+
+label:"Predicted Price",
+
+data:forecast,
+
+borderWidth:3,
+
+tension:0.4
+
+}]
+
+}
+
+})
+
+}
+
+
+
+window.onload=loadMarkets
+
+
+</script>
+
+</body>
+
+</html>
